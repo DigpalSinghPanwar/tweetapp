@@ -1,5 +1,10 @@
 const express = require("express");
 const morgan = require("morgan");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+
 const userRouter = require("./routers/userRoutes");
 const tweetRouter = require("./routers/tweetRoutes");
 const GlobalErrorHandler = require("./controllers/errorController");
@@ -7,9 +12,25 @@ const AppError = require("./utils/appError");
 
 const app = express();
 
-app.use(express.json());
+app.use(helmet());
 
-app.use(morgan("dev"));
+if ((process.env.NODE_ENV = "development")) {
+  app.use(morgan("dev"));
+}
+
+const limiter = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  limit: 100,
+  message: "Too many requests from this IP, Please try again in an hour",
+});
+
+app.use("/api", limiter);
+
+app.use(express.json({ limit: "10kb" }));
+
+// app.use(mongoSanitize());
+
+// app.use(xss());
 
 app.use((req, res, next) => {
   console.log("welcome to tweet");

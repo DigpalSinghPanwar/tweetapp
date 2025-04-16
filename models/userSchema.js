@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const bcrypt = require("bcryptjs");
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -36,6 +36,12 @@ const userSchema = new mongoose.Schema(
       minLength: [8, "A password must contain 8 characters"],
       maxLength: [16, "A username must have less than 16 letters"],
       select: false,
+      validate: {
+        validator: function (el) {
+          return el === this.password;
+        },
+        message: "Passwords are not the same",
+      },
     },
     active: {
       type: Boolean,
@@ -46,6 +52,27 @@ const userSchema = new mongoose.Schema(
   { toJSON: { virtuals: true }, toObject: { virtuals: true } },
   { timestamps: true }
 );
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
+  this.password = await bcrypt.hash(this.password, 12);
+
+  this.passwordConfirm = undefined;
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  this.find({ active: { $ne: false } });
+  next();
+});
+
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

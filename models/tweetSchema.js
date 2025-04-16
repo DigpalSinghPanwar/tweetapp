@@ -1,4 +1,4 @@
-const { default: mongoose } = require("mongoose");
+const mongoose = require("mongoose");
 
 const tweetSchema = new mongoose.Schema(
   {
@@ -10,7 +10,7 @@ const tweetSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: User,
+      ref: "User",
       required: true,
     },
     likes: {
@@ -42,3 +42,4 @@ const tweetSchema = new mongoose.Schema(
 );
 
 const Tweet = mongoose.model("Tweet", tweetSchema);
+module.exports = Tweet;
