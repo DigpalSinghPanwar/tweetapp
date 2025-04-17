@@ -1,6 +1,10 @@
 const Tweet = require("../models/tweetSchema");
+const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
-const { createTweetValidator } = require("../validators/tweetValidator");
+const {
+  createTweetValidator,
+  createCommentValidator,
+} = require("../validators/tweetValidator");
 
 exports.createTweet = catchAsync(async (req, res, next) => {
   const { description } = req.body;
@@ -9,10 +13,7 @@ exports.createTweet = catchAsync(async (req, res, next) => {
   });
   console.log(success);
   if (!success) {
-    return res.status(404).json({
-      status: "failed",
-      message: "Provide the values",
-    });
+    return next(new AppError("Provide the values", 404));
   }
   const newTweet = await Tweet.create({
     description,
@@ -27,50 +28,170 @@ exports.createTweet = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.updateTweet = (req, res, next) => {
-  try {
-    const { description } = req.body;
-    const { success } = createTweetValidator.safeParse({
-      description,
-    });
-    if (!success) {
-      return res.status(404).json({
-        status: "failed",
-        message: "Provide the values",
-      });
-    }
-    res.status(200).json({
-      status: "success",
-    });
-  } catch (error) {
-    res.status(404).json({
-      status: "failed",
-    });
+exports.updateTweet = catchAsync(async (req, res, next) => {
+  const { description } = req.body;
+  const { id } = req.params;
+  const { success } = createTweetValidator.safeParse({
+    description,
+  });
+  if (!success) {
+    return next(new AppError("Provide the values", 404));
   }
-};
 
-exports.getAllTweet = (req, res, next) => {
-  const data = Tweet.find({});
+  const tweet = await Tweet.findById(id);
+
+  if (!tweet) {
+    return next(new AppError("Tweet not found", 404));
+  }
+
+  if (tweet.user.toString() !== req.user.id) {
+    return next(new AppError("you are not allowed to update this tweet", 403));
+  }
+
+  const newTweet = await Tweet.findByIdAndUpdate(
+    id,
+    {
+      description,
+      user: req.user._id,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
   res.status(200).json({
     status: "success",
-    data,
+    data: {
+      newTweet,
+    },
   });
-};
+});
 
-exports.getTweet = (req, res, next) => {
-  try {
-    res.status(200).json({
-      status: "success",
-    });
-  } catch (error) {
-    res.status(404).json({
-      status: "failed",
-    });
+exports.getAllTweet = catchAsync(async (req, res, next) => {
+  const tweets = await Tweet.find();
+  res.status(200).json({
+    status: "success",
+    data: {
+      tweets,
+    },
+  });
+});
+
+exports.getTweet = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  if (!id) {
+    return next(new AppError("id is required", 400));
   }
-};
+  const tweet = await Tweet.findById(id);
+  res.status(200).json({
+    status: "success",
+    data: {
+      tweet,
+    },
+  });
+});
 
 exports.deleteTweet = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const tweet = await Tweet.findById(id);
+
+  if (!tweet) {
+    return next(new AppError("id is required", 400));
+  }
+
+  if (tweet.user.toString() !== req.user.id) {
+    return next(new AppError("only owner cand delete the tweet", 403));
+  }
+
+  // await Tweet.findByIdAndDelete(id);
+  await tweet.deleteOne();
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
+
+exports.likeTweet = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const userId = req.user._id;
+  if (!id) {
+    return next(new AppError("id is required", 400));
+  }
+  const tweet = await Tweet.findById(id);
+  if (!tweet) {
+    return next(new AppError("Tweet not found", 404));
+  }
+
+  const alreadyLikes = tweet.likes.includes(userId);
+
+  if (alreadyLikes) {
+    tweet.likes.pull(userId);
+  } else {
+    tweet.likes.push(userId);
+  }
+
+  await tweet.save();
+
   res.status(200).json({
     status: "success",
+    liked: !alreadyLikes,
+    totalLikes: tweet.likes.length,
+  });
+});
+
+exports.replyTweet = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { comment } = req.body;
+  const userId = req.user._id;
+
+  const { status } = createCommentValidator.safeParse({
+    comment,
+  });
+
+  console.log(status, "comment status");
+
+  if (!comment || comment.trim() === "") {
+    return next(new AppError("Comment cannot be empty", 400));
+  }
+
+  const tweet = await Tweet.findById(id);
+
+  if (!tweet) {
+    return next(new AppError("Tweet Not Found", 404));
+  }
+
+  tweet.replies.push({
+    user: userId,
+    comment,
+  });
+
+  console.log(tweet);
+
+  await tweet.save();
+
+  res.status(201).json({
+    status: "success",
+    message: "reply added",
+    tweet,
+  });
+});
+
+exports.getReplies = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const tweet = await Tweet.findById(id).populate(
+    "replies.user",
+    "username about"
+  );
+
+  if (!tweet) {
+    return next(new AppError("Tweet not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    replies: tweet.replies,
   });
 });

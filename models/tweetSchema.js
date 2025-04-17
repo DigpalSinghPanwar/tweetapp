@@ -24,7 +24,12 @@ const tweetSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
         },
-        content: String,
+        comment: {
+          type: String,
+          required: [true, "a tweet must have an comment"],
+          minLength: [1, "a tweet must have atleast a letter."],
+          maxLength: [280, "a tweet cannot exceed 280 characters."],
+        },
         createdAt: {
           type: Date,
           default: Date.now,

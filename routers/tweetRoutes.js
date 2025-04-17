@@ -5,6 +5,9 @@ const {
   getAllTweet,
   getTweet,
   deleteTweet,
+  likeTweet,
+  replyTweet,
+  getReplies,
 } = require("../controllers/tweetController");
 const { protect } = require("../controllers/authController");
 
@@ -16,5 +19,9 @@ router
   .get(protect, getTweet)
   .patch(protect, updateTweet)
   .delete(protect, deleteTweet);
+
+router.route("/:id/like").get(protect, likeTweet);
+router.route("/:id/reply").post(protect, replyTweet);
+router.route("/:id/replies").get(protect, getReplies);
 
 module.exports = router;

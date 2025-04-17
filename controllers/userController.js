@@ -51,7 +51,7 @@ exports.updateUser = catchAsync(async (req, res, next) => {
 
   // 2) Filtered out unwanted field names that are not allowed to be updated
   // update this, such as if require photo or any other field to be updated
-  const filteredBody = filterObj(req.body, "name", "email");
+  const filteredBody = filterObj(req.body, "username", "email");
 
   // 3) Update User Document
   // new field will return the updated user, validators field will run all the validators in schema
