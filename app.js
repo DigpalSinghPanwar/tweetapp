@@ -7,6 +7,7 @@ const xss = require("xss-clean");
 
 const userRouter = require("./routers/userRoutes");
 const tweetRouter = require("./routers/tweetRoutes");
+const commentRouter = require("./routers/commentRoutes");
 const GlobalErrorHandler = require("./controllers/errorController");
 const AppError = require("./utils/appError");
 
@@ -45,6 +46,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tweet", tweetRouter);
+app.use("/api/v1/comment", commentRouter);
 
 app.all("/{*splat}", (req, res, next) => {
   // res.status(404).json({

@@ -10,6 +10,7 @@ const {
   deleteUser,
   getUser,
   getAllUser,
+  getAnalytics,
 } = require("../controllers/userController");
 
 const router = Router();
@@ -17,7 +18,8 @@ const router = Router();
 router.post("/signin", signin);
 router.post("/signup", signup);
 
-router.get("/all", protect, getAllUser);
+router.get("/all", protect, restrictTo("admin", "super-admin"), getAllUser);
+router.route("/:id/analytics").get(protect, getAnalytics);
 router
   .route("/:id")
   .get(protect, getUser)

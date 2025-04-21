@@ -42,9 +42,7 @@ const createWebToken = (user, statusCode, res) => {
 
 exports.signin = catchAsync(async (req, res, next) => {
   const body = req.body;
-  console.log(body);
   const result = signinValidator.safeParse(req.body);
-  console.log(result);
   if (!result.success) {
     return next(new AppError("provide correct email and password", 400));
   }
@@ -55,7 +53,6 @@ exports.signin = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(body.password, user.password))) {
     return next(new AppError("Incorrect email and password", 401));
   }
-  console.log(user);
 
   createWebToken(user, 200, res);
 });
@@ -64,16 +61,21 @@ exports.signup = catchAsync(async (req, res, next) => {
   const body = req.body;
   const { success, error } = signupValidator.safeParse(req.body);
   if (!success) {
-    console.log(error.issues);
-    console.log(error.format());
-    return new AppError("Provide correct credentials", 400);
+    // console.log(error.issues);
+    // console.log(error.format());
+    return next(new AppError("Provide correct credentials", 401));
   }
+
   const user = await User.create({
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     username: req.body.username,
   });
+
+  if (!user) {
+    return next(new AppError("Provide correct credentials", 401));
+  }
   createWebToken(user, 200, res);
   // console.log(user);.
 });
@@ -114,7 +116,10 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
+    console.log(req.user.role);
+    console.log(req.user.username);
     if (!roles.includes(req.user.role)) {
+      console.log(req.user.role, "no role");
       return next(
         new AppError("You do not have permission to perform this action", 403)
       );

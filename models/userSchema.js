@@ -49,8 +49,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
   },
-  { toJSON: { virtuals: true }, toObject: { virtuals: true } },
-  { timestamps: true }
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+    timestamps: true,
+  }
 );
 
 userSchema.pre("save", async function (next) {

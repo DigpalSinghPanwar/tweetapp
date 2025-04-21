@@ -1,6 +1,8 @@
+const Comment = require("../models/commentSchema");
 const Tweet = require("../models/tweetSchema");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const { getPaginatedResults } = require("../utils/paginate");
 const {
   createTweetValidator,
   createCommentValidator,
@@ -11,7 +13,6 @@ exports.createTweet = catchAsync(async (req, res, next) => {
   const { success } = createTweetValidator.safeParse({
     description,
   });
-  console.log(success);
   if (!success) {
     return next(new AppError("Provide the values", 404));
   }
@@ -19,7 +20,6 @@ exports.createTweet = catchAsync(async (req, res, next) => {
     description,
     user: req.user._id,
   });
-  console.log(newTweet);
   res.status(200).json({
     status: "success",
     data: {
@@ -69,25 +69,96 @@ exports.updateTweet = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllTweet = catchAsync(async (req, res, next) => {
-  const tweets = await Tweet.find();
+  const limit = req?.query?.limit;
+  const page = req?.query?.page || 1;
+
+  // Step 1: Get paginated tweets
+  const paginated = await getPaginatedResults(
+    Tweet,
+    {},
+    {
+      page,
+      limit,
+      sort: "-createdAt",
+      populate: { path: "user", select: "username about" },
+    }
+  );
+
+  // Step 2: Get tweet IDs
+  const tweetIds = paginated.results.map((tweet) => tweet._id);
+
+  // Step 3: Get comment counts grouped by tweet
+  const commentCountMap = {};
+  const commentCounts = await Comment.aggregate([
+    { $match: { tweet: { $in: tweetIds } } },
+    { $group: { _id: "$tweet", count: { $sum: 1 } } },
+  ]);
+  commentCounts.forEach((c) => (commentCountMap[c._id.toString()] = c.count));
+
+  // Step 4: Format final tweets
+  const tweetsWithCounts = paginated.results.map((tweet) => ({
+    _id: tweet._id,
+    description: tweet.description,
+    username: tweet.user.username,
+    about: tweet.user.about,
+    likeCount: tweet.likes.length,
+    commentCount: commentCountMap[tweet._id.toString()] || 0,
+    createdAt: tweet.createdAt,
+  }));
+
   res.status(200).json({
     status: "success",
     data: {
-      tweets,
+      tweets: tweetsWithCounts,
+    },
+    pagination: {
+      total: paginated.total,
+      currentPage: paginated.currentPage,
+      totalPages: paginated.totalPages,
     },
   });
 });
 
 exports.getTweet = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  if (!id) {
-    return next(new AppError("id is required", 400));
+  // const { id } = req.params;
+  // if (!id) {
+  //   return next(new AppError("id is required", 400));
+  // }
+  // const tweet = await Tweet.findById(id);
+
+  const tweetId = req.params.id;
+
+  if (!tweetId) {
+    return next(new AppError("id is required", 404));
   }
-  const tweet = await Tweet.findById(id);
+
+  // Step 1: Get the tweet and populate username
+  const tweet = await Tweet.findById(tweetId).populate({
+    path: "user",
+    select: "username",
+  });
+
+  if (!tweet) {
+    return next(new AppError("tweet not found", 404));
+  }
+
+  // Step 2: Count the total number of comments for the tweet
+  const commentCount = await Comment.countDocuments({ tweet: tweetId });
+
+  // Step 3: Structure the final response
+  const result = {
+    _id: tweet._id,
+    description: tweet.description,
+    username: tweet.user.username,
+    likeCount: tweet.likes.length,
+    commentCount: commentCount,
+    createdAt: tweet.createdAt,
+  };
+
   res.status(200).json({
     status: "success",
     data: {
-      tweet,
+      result,
     },
   });
 });
@@ -115,7 +186,7 @@ exports.deleteTweet = catchAsync(async (req, res, next) => {
 
 exports.likeTweet = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-  const userId = req.user._id;
+  const userId = req.user.id;
   if (!id) {
     return next(new AppError("id is required", 400));
   }
@@ -138,60 +209,5 @@ exports.likeTweet = catchAsync(async (req, res, next) => {
     status: "success",
     liked: !alreadyLikes,
     totalLikes: tweet.likes.length,
-  });
-});
-
-exports.replyTweet = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const { comment } = req.body;
-  const userId = req.user._id;
-
-  const { status } = createCommentValidator.safeParse({
-    comment,
-  });
-
-  console.log(status, "comment status");
-
-  if (!comment || comment.trim() === "") {
-    return next(new AppError("Comment cannot be empty", 400));
-  }
-
-  const tweet = await Tweet.findById(id);
-
-  if (!tweet) {
-    return next(new AppError("Tweet Not Found", 404));
-  }
-
-  tweet.replies.push({
-    user: userId,
-    comment,
-  });
-
-  console.log(tweet);
-
-  await tweet.save();
-
-  res.status(201).json({
-    status: "success",
-    message: "reply added",
-    tweet,
-  });
-});
-
-exports.getReplies = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-
-  const tweet = await Tweet.findById(id).populate(
-    "replies.user",
-    "username about"
-  );
-
-  if (!tweet) {
-    return next(new AppError("Tweet not found", 404));
-  }
-
-  res.status(200).json({
-    status: "success",
-    replies: tweet.replies,
   });
 });
