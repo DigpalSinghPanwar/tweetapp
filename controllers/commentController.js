@@ -32,11 +32,14 @@ exports.getComments = catchAsync(async (req, res, next) => {
     createdAt: comment.createdAt,
   }));
 
-  res.json({
-    comments: formatted,
-    total: paginated.total,
-    currentPage: paginated.currentPage,
-    totalPages: paginated.totalPages,
+  res.status(200).json({
+    status: "success",
+    data: {
+      comments: formatted,
+      total: paginated.total,
+      currentPage: paginated.currentPage,
+      totalPages: paginated.totalPages,
+    },
   });
 });
 
