@@ -15,7 +15,7 @@ const app = express();
 
 app.use(helmet());
 
-if ((process.env.NODE_ENV = "development")) {
+if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
@@ -29,9 +29,9 @@ app.use("/api", limiter);
 
 app.use(express.json({ limit: "10kb" }));
 
-// app.use(mongoSanitize());
+app.use(mongoSanitize());
 
-// app.use(xss());
+app.use(xss());
 
 app.use((req, res, next) => {
   console.log("welcome to tweet");
@@ -48,7 +48,7 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/comment", commentRouter);
 
-app.all("/{*splat}", (req, res, next) => {
+app.all("*", (req, res, next) => {
   // res.status(404).json({
   //   status: "failed",
   //   message: `Can't find the ${req.originalUrl} on this server`,
