@@ -12,12 +12,11 @@ const { protect } = require("../controllers/authController");
 const router = Router();
 
 router.route("/").get(protect, getAllTweet).post(protect, createTweet);
+router.get("/:id/like", protect, likeTweet);
 router
   .route("/:id")
   .get(protect, getTweet)
   .patch(protect, updateTweet)
   .delete(protect, deleteTweet);
-
-router.get("/:id/like", protect, likeTweet);
 
 module.exports = router;
