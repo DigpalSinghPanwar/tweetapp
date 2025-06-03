@@ -14,11 +14,13 @@ const AppError = require("./utils/appError");
 
 const app = express();
 
+console.log("🔥  CORS block is being registered");
 app.use(
   cors({
     origin: "http://localhost:5173", // or '*', but 'http://localhost:5173' is safer
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], // <-- include PATCH
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.options("*", cors());

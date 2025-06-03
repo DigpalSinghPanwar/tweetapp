@@ -23,7 +23,7 @@ router.route("/:id/analytics").get(protect, getAnalytics);
 router
   .route("/:id")
   .get(protect, getUser)
-  .patch(protect, updateUser)
+  .put(protect, updateUser)
   .delete(protect, restrictTo("admin", "super-admin"), deleteUser);
 
 module.exports = router;
