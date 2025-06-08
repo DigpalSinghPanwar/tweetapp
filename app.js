@@ -14,7 +14,7 @@ const AppError = require("./utils/appError");
 
 const app = express();
 
-console.log("🔥  CORS block is being registered");
+// console.log("🔥  CORS block is being registered");
 app.use(cors());
 // app.use(
 //   cors({
@@ -47,7 +47,7 @@ app.use(mongoSanitize());
 app.use(xss());
 
 app.use((req, res, next) => {
-  console.log("welcome to tweet");
+  // console.log("welcome to tweet");
   next();
 });
 

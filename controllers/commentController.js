@@ -23,7 +23,7 @@ exports.getComments = catchAsync(async (req, res, next) => {
     }
   );
 
-  console.log(paginated);
+  // console.log(paginated);
   // Format comments
   const formatted = paginated.results.map((comment) => ({
     _id: comment._id,
