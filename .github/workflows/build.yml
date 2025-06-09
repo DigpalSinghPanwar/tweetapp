@@ -26,3 +26,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: digpalsingh/my-tweet-app:latest
+
+      - name: Trigger Render deploy
+        run: |
+          curl -X POST https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }} \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
