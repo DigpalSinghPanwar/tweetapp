@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to chirp",
+    message: "Welcome to chirp app.",
   });
 });
 
