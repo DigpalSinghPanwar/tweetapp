@@ -60,6 +60,7 @@ You can use Postman or any API client to test the endpoints.
 
 🗂️ Project Structure
 
+<pre>
 ├── controllers/ # Request handlers
 ├── models/ # Mongoose schemas (User, Tweet, Comment)
 ├── routes/ # Express routes
@@ -74,6 +75,7 @@ You can use Postman or any API client to test the endpoints.
 ├── .dockerignore # Files to ignore in Docker builds
 ├── Dockerfile # Dockerfile for containerization
 └── server.js # Server bootstrap
+</pre>
 
 ---
 
